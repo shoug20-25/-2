@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PathFinder | مختبر مقارنة الخوارزميات</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2d;
+      --panel-2: #172239;
+      --line: #293653;
+      --text: #f2f5ff;
+      --muted: #aab5cf;
+      --accent: #8b7cff;
+      --accent-2: #42d6b5;
+      --warning: #ffca6b;
+      --danger: #ff7185;
+      --cell: #202c45;
+      --wall: #59647b;
+      --start: #42d6b5;
+      --goal: #ffca6b;
+      --path: #8b7cff;
+      --visited: #34527c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: radial-gradient(circle at top right, #1a2543 0, var(--bg) 48%);
+      color: var(--text); min-height: 100vh;
+    }
+    .container { width: min(1400px, 94%); margin: 0 auto; padding: 28px 0 40px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:24px; }
+    .brand { display:flex; align-items:center; gap:14px; }
+    .logo { width:54px; height:54px; border-radius:17px; display:grid; place-items:center; font-size:28px; background:linear-gradient(135deg,#8b7cff,#42d6b5); box-shadow:0 8px 30px #0005; }
+    h1 { font-size:clamp(24px,4vw,36px); margin:0 0 6px; letter-spacing:-.5px; }
+    .subtitle { color:var(--muted); margin:0; line-height:1.7; }
+    .badge { border:1px solid #3d4c6d; color:#d8d2ff; padding:9px 13px; border-radius:999px; background:#171f35; font-size:13px; }
+    .intro { display:grid; grid-template-columns:1.3fr .7fr; gap:16px; margin-bottom:18px; }
+    .card { background:linear-gradient(180deg,#151f35,#11192b); border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 12px 30px #0002; }
+    .card h2,.card h3 { margin:0 0 12px; }
+    .card p { color:var(--muted); line-height:1.85; margin:0; }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:18px 0; }
+    button, select {
+      border:1px solid #3a4968; border-radius:12px; padding:11px 15px; color:var(--text);
+      background:#1a2741; font:inherit; cursor:pointer; transition:.18s;
+    }
+    button:hover, select:hover { border-color:var(--accent); transform:translateY(-1px); }
+    button.primary { background:linear-gradient(135deg,#7767ed,#5a8de7); border-color:transparent; font-weight:700; }
+    button.secondary { background:#18243b; }
+    button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    label { color:var(--muted); display:flex; align-items:center; gap:8px; }
+    .status { color:var(--muted); margin-right:auto; font-size:14px; }
+    .legend { display:flex; gap:15px; flex-wrap:wrap; color:var(--muted); font-size:13px; margin:12px 0 20px; }
+    .legend span { display:flex; align-items:center; gap:7px; }
+    .swatch { width:13px; height:13px; border-radius:4px; display:inline-block; }
+    .boards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+    .algo-card { background:#111a2d; border:1px solid var(--line); border-radius:18px; padding:15px; min-width:0; }
+    .algo-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px; }
+    .algo-head h3 { font-size:18px; margin:0; }
+    .tag { font-size:11px; color:#d5d0ff; background:#29274f; border:1px solid #514a91; padding:5px 8px; border-radius:999px; white-space:nowrap; }
+    .algo-desc { min-height:44px; color:var(--muted); font-size:12px; line-height:1.7; margin:6px 0 12px; }
+    .grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; width:100%; }
+    .cell { aspect-ratio:1; min-width:0; background:var(--cell); border-radius:3px; position:relative; }
+    .cell.wall { background:var(--wall); box-shadow:inset 0 0 0 1px #ffffff12; }
+    .cell.visited { background:var(--visited); }
+    .cell.path { background:var(--path); box-shadow:0 0 8px #8b7cff66; }
+    .cell.start { background:var(--start); }
+    .cell.goal { background:var(--goal); }
+    .cell.start::after { content:"S"; color:#08271f; font-size:clamp(8px,1.2vw,13px); font-weight:900; position:absolute; inset:0; display:grid; place-items:center; }
+    .cell.goal::after { content:"G"; color:#422b00; font-size:clamp(8px,1.2vw,13px); font-weight:900; position:absolute; inset:0; display:grid; place-items:center; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-top:13px; }
+    .stat { background:#19243b; padding:9px 5px; border-radius:10px; text-align:center; }
+    .stat strong { display:block; font-size:18px; }
+    .stat small { color:var(--muted); font-size:10px; }
+    .winner { margin-top:18px; border:1px solid #3c5d63; background:linear-gradient(135deg,#102c31,#142238); border-radius:18px; padding:18px; display:none; }
+    .winner h3 { margin:0 0 8px; }
+    .winner p { color:var(--muted); margin:0; line-height:1.8; }
+    .learning { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:18px; }
+    .learning .card { padding:17px; }
+    .learning h3 { font-size:16px; }
+    .learning p { font-size:13px; }
+    footer { text-align:center; color:#8491ad; font-size:12px; padding-top:26px; line-height:1.8; }
+    @media (max-width:1000px) { .boards { grid-template-columns:1fr; } .grid { grid-template-columns:repeat(12,minmax(0,1fr)); max-width:520px; margin:auto; } .algo-desc { min-height:0; } .intro { grid-template-columns:1fr; } }
+    @media (max-width:650px) { .learning { grid-template-columns:1fr; } .container { width:92%; padding-top:18px; } .status { width:100%; margin:0; } .controls button { flex:1; } }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">🤖</div>
+        <div>
+          <h1>PathFinder <span style="color:#8b7cff">Lab</span></h1>
+          <p class="subtitle">مختبر تفاعلي لمقارنة خوارزميات البحث عن المسار</p>
+        </div>
+      </div>
+      <div class="badge">مشروع تعليمي • BFS / DFS / A*</div>
+    </header>
+
+    <section class="intro">
+      <div class="card">
+        <h2>كيف يصل الروبوت إلى الهدف؟</h2>
+        <p>تخيّل أن الروبوت يريد الوصول من نقطة البداية <b style="color:#42d6b5">S</b> إلى الهدف <b style="color:#ffca6b">G</b> وسط العوائق. شغّل الخوارزميات الثلاث على الخريطة نفسها، ثم قارن المسارات والخلايا التي استكشفتها كل خوارزمية.</p>
+      </div>
+      <div class="card">
+        <h2>طريقة الاستخدام</h2>
+        <p>اضغط «ابدأ المقارنة» لمشاهدة النتائج. يمكنك تغيير الخريطة، أو إنشاء عوائق عشوائية، ثم إعادة التجربة. المربعات الرمادية عوائق لا يستطيع الروبوت عبورها.</p>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button class="primary" id="runBtn">▶ ابدأ المقارنة</button>
+      <button class="secondary" id="randomBtn">⤨ خريطة عشوائية</button>
+      <button class="secondary" id="clearBtn">↺ إعادة الخريطة</button>
+      <label>سرعة العرض
+        <select id="speed">
+          <option value="35">سريعة</option>
+          <option value="100" selected>متوسطة</option>
+          <option value="220">بطيئة</option>
+        </select>
+      </label>
+      <span class="status" id="status">جاهز للتجربة — اضغط ابدأ المقارنة.</span>
+    </div>
+
+    <div class="legend">
+      <span><i class="swatch" style="background:#42d6b5"></i> البداية</span>
+      <span><i class="swatch" style="background:#ffca6b"></i> الهدف</span>
+      <span><i class="swatch" style="background:#59647b"></i> عائق</span>
+      <span><i class="swatch" style="background:#34527c"></i> خلية مستكشفة</span>
+      <span><i class="swatch" style="background:#8b7cff"></i> المسار النهائي</span>
+    </div>
+
+    <section class="boards" id="boards">
+      <article class="algo-card">
+        <div class="algo-head"><h3>BFS</h3><span class="tag">بحث مستوى بمستوى</span></div>
+        <p class="algo-desc">يستكشف الخلايا الأقرب أولًا. يجد أقصر مسار من حيث عدد الخطوات عندما تكون الحركة متساوية التكلفة.</p>
+        <div class="grid" id="grid-bfs" aria-label="خريطة BFS"></div>
+        <div class="stats">
+          <div class="stat"><strong id="bfs-visited">—</strong><small>خلايا مستكشفة</small></div>
+          <div class="stat"><strong id="bfs-length">—</strong><small>خطوات المسار</small></div>
+          <div class="stat"><strong id="bfs-time">—</strong><small>زمن التنفيذ</small></div>
+        </div>
+      </article>
+      <article class="algo-card">
+        <div class="algo-head"><h3>DFS</h3><span class="tag">بحث بالتعمّق</span></div>
+        <p class="algo-desc">يتعمق في مسار ثم يرجع عند الانسداد. قد يصل للهدف بمسار أطول، ولا يضمن أقصر مسار.</p>
+        <div class="grid" id="grid-dfs" aria-label="خريطة DFS"></div>
+        <div class="stats">
+          <div class="stat"><strong id="dfs-visited">—</strong><small>خلايا مستكشفة</small></div>
+          <div class="stat"><strong id="dfs-length">—</strong><small>خطوات المسار</small></div>
+          <div class="stat"><strong id="dfs-time">—</strong><small>زمن التنفيذ</small></div>
+        </div>
+      </article>
+      <article class="algo-card">
+        <div class="algo-head"><h3>A*</h3><span class="tag">بحث موجّه بتقدير</span></div>
+        <p class="algo-desc">يجمع تكلفة الوصول إلى الخلية مع تقدير المسافة المتبقية للهدف، ليساعده على توجيه البحث.</p>
+        <div class="grid" id="grid-astar" aria-label="خريطة A star"></div>
+        <div class="stats">
+          <div class="stat"><strong id="astar-visited">—</strong><small>خلايا مستكشفة</small></div>
+          <div class="stat"><strong id="astar-length">—</strong><small>خطوات المسار</small></div>
+          <div class="stat"><strong id="astar-time">—</strong><small>زمن التنفيذ</small></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="winner" id="summary">
+      <h3>📊 ملخص المقارنة</h3>
+      <p id="summaryText"></p>
+    </section>
+
+    <section class="learning">
+      <div class="card"><h3>🔎 BFS</h3><p>مفيد عندما نريد أقصر مسار في شبكة تكون تكلفة كل حركة فيها متساوية. يستخدم طابورًا لاستكشاف الجيران مستوى بمستوى.</p></div>
+      <div class="card"><h3>🧭 DFS</h3><p>يتبع أحد المسارات إلى أقصى حد قبل العودة. قد يكون بسيطًا في التنفيذ، لكنه لا يضمن أقصر مسار.</p></div>
+      <div class="card"><h3>⭐ A*</h3><p>يستخدم قيمة تقديرية للمسافة المتبقية؛ وهنا نستخدم مسافة Manhattan لأن الحركة أفقية أو عمودية فقط.</p></div>
+    </section>
+
+    <footer>
+      مشروع تعليمي توضيحي — النتائج تتأثر بشكل الخريطة وترتيب الجيران. زمن التنفيذ المعروض تقريبي وقد يتغير بحسب الجهاز والمتصفح.
+    </footer>
+  </main>
+  <script>
+    const ROWS = 10, COLS = 12;
+    const START = [0, 0], GOAL = [9, 11];
+    const defaultWalls = [
+      [0,4],[1,4],[2,4],[3,4],[5,2],[5,3],[5,4],[5,5],[5,8],[5,9],
+      [6,8],[7,8],[8,2],[8,3],[8,4],[2,7],[3,7],[4,7],[7,5],[7,6]
+    ];
+    let walls = new Set(defaultWalls.map(([r,c]) => key(r,c)));
+    let isRunning = false;
+    const algos = [
+      { id: "bfs", name: "BFS", fn: bfs },
+      { id: "dfs", name: "DFS", fn: dfs },
+      { id: "astar", name: "A*", fn: astar }
+    ];
+    function key(r,c) { return `${r},${c}`; }
+    function parse(k) { return k.split(",").map(Number); }
+    function same(a,b) { return a[0]===b[0] && a[1]===b[1]; }
+    function inBounds(r,c) { return r>=0 && r<ROWS && c>=0 && c<COLS; }
+    function neighbors(k) {
+      const [r,c] = parse(k);
+      return [[r-1,c],[r,c+1],[r+1,c],[r,c-1]]
+        .filter(([nr,nc]) => inBounds(nr,nc) && !walls.has(key(nr,nc)))
+        .map(([nr,nc]) => key(nr,nc));
+    }
+    function drawGrid(id, visited = new Set(), path = new Set()) {
+      const grid = document.getElementById(`grid-${id}`);
+      grid.innerHTML = "";
+      for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++) {
+        const k = key(r,c), cell = document.createElement("div");
+        cell.className = "cell";
+        if (walls.has(k)) cell.classList.add("wall");
+        else if (path.has(k) && k!==key(...START) && k!==key(...GOAL)) cell.classList.add("path");
+        else if (visited.has(k) && k!==key(...START) && k!==key(...GOAL)) cell.classList.add("visited");
+        if (k===key(...START)) cell.classList.add("start");
+        if (k===key(...GOAL)) cell.classList.add("goal");
+        grid.appendChild(cell);
+      }
+    }
+    function resetStats() {
+      for (const a of algos) {
+        document.getElementById(`${a.id}-visited`).textContent = "—";
+        document.getElementById(`${a.id}-length`).textContent = "—";
+        document.getElementById(`${a.id}-time`).textContent = "—";
+      }
+      document.getElementById("summary").style.display = "none";
+    }
+    function reconstruct(parent, end) {
+      const path = [];
+      let cur = end;
+      while (cur) { path.push(cur); cur = parent.get(cur); }
+      return path.reverse();
+    }
+    function bfs() {
+      const start=key(...START), goal=key(...GOAL), queue=[start], seen=new Set([start]), parent=new Map(), order=[];
+      let head=0;
+      while(head<queue.length) {
+        const cur=queue[head++]; order.push(cur);
+        if(cur===goal) break;
+        for(const n of neighbors(cur)) if(!seen.has(n)) { seen.add(n); parent.set(n,cur); queue.push(n); }
+      }
+      return { order, path: seen.has(goal) ? reconstruct(parent,goal) : [], visited: order.length };
+    }
+    function dfs() {
+      const start=key(...START), goal=key(...GOAL), stack=[start], seen=new Set(), parent=new Map(), order=[];
+      while(stack.length) {
+        const cur=stack.pop();
+        if(seen.has(cur)) continue;
+        seen.add(cur); order.push(cur);
+        if(cur===goal) break;
+        const ns=neighbors(cur);
+        // Push in reverse so visual exploration is consistent and deterministic.
+        for(let i=ns.length-1;i>=0;i--) if(!seen.has(ns[i])) { if(!parent.has(ns[i])) parent.set(ns[i],cur); stack.push(ns[i]); }
+      }
+      return { order, path: seen.has(goal) ? reconstruct(parent,goal) : [], visited: order.length };
+    }
+    function astar() {
+      const start=key(...START), goal=key(...GOAL);
+      const open=[{k:start,f:manhattan(start,goal),g:0}], came=new Map(), gScore=new Map([[start,0]]), closed=new Set(), order=[];
+      while(open.length) {
+        open.sort((a,b)=>a.f-b.f || a.g-b.g);
+        const current=open.shift().k;
+        if(closed.has(current)) continue;
+        closed.add(current); order.push(current);
+        if(current===goal) break;
+        for(const n of neighbors(current)) {
+          const tentative=gScore.get(current)+1;
+          if(tentative < (gScore.get(n) ?? Infinity)) {
+            came.set(n,current); gScore.set(n,tentative);
+            open.push({k:n,g:tentative,f:tentative+manhattan(n,goal)});
+          }
+        }
+      }
+      return { order, path: closed.has(goal) ? reconstruct(came,goal) : [], visited: order.length };
+    }
+    function manhattan(a,b) {
+      const [ar,ac]=parse(a), [br,bc]=parse(b);
+      return Math.abs(ar-br)+Math.abs(ac-bc);
+    }
+    const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
+    async function animate(id, result, speed) {
+      const grid=document.getElementById(`grid-${id}`);
+      const cells=[...grid.children];
+      const visited=new Set(), pathSet=new Set(result.path);
+      const startTime=performance.now();
+      for(let i=0;i<result.order.length;i++) {
+        visited.add(result.order[i]);
+        if(i%2===0 || i===result.order.length-1) {
+          drawGrid(id,visited,new Set());
+          await sleep(speed);
+        }
+      }
+      drawGrid(id,visited,pathSet);
+      const elapsed=(performance.now()-startTime)/1000;
+      document.getElementById(`${id}-visited`).textContent=result.visited;
+      document.getElementById(`${id}-length`).textContent=result.path.length ? result.path.length-1 : "لا يوجد";
+      document.getElementById(`${id}-time`).textContent=elapsed.toFixed(2)+"ث";
+      return elapsed;
+    }
+    async function runComparison() {
+      if(isRunning) return;
+      isRunning=true;
+      setButtons(true); resetStats();
+      document.getElementById("status").textContent="جاري تشغيل الخوارزميات…";
+      const speed=Number(document.getElementById("speed").value);
+      const results=algos.map(a=>({ ...a, result:a.fn() }));
+      // Animate in parallel, using the same map and speed.
+      await Promise.all(results.map(x=>animate(x.id,x.result,speed)));
+      const reachable=results.filter(x=>x.result.path.length);
+      const shortest=reachable.length ? Math.min(...reachable.map(x=>x.result.path.length-1)) : null;
+      const best=reachable.filter(x=>x.result.path.length-1===shortest).map(x=>x.name);
+      document.getElementById("summaryText").textContent = shortest===null
+        ? "لم تتمكن أي خوارزمية من الوصول إلى الهدف. جرّب خريطة أخرى."
+        : `أقصر مسار في هذه الخريطة طوله ${shortest} خطوة، ووجدته: ${best.join(" و")}. تذكّر أن عدد الخلايا المستكشفة وزمن التنفيذ قد يتغيران حسب شكل الخريطة. BFS يضمن أقصر مسار هنا لأن كل حركة لها التكلفة نفسها؛ أما DFS فلا يضمن ذلك.`;
+      document.getElementById("summary").style.display="block";
+      document.getElementById("status").textContent="اكتملت المقارنة. جرّب تغيير الخريطة وإعادة التشغيل.";
+      isRunning=false; setButtons(false);
+    }
+    function setButtons(disabled) {
+      ["runBtn","randomBtn","clearBtn"].forEach(id=>document.getElementById(id).disabled=disabled);
+    }
+    function randomMap() {
+      walls=new Set();
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+        const k=key(r,c);
+        if(k===key(...START)||k===key(...GOAL)) continue;
+        if(Math.random()<0.19) walls.add(k);
+      }
+      // Ensure the default route corridor isn't always blocked completely.
+      for(let c=0;c<COLS;c++) walls.delete(key(0,c));
+      for(let r=0;r<ROWS;r++) walls.delete(key(r,COLS-1));
+      renderAll(); resetStats();
+      document.getElementById("status").textContent="تم إنشاء خريطة عشوائية. ابدأ المقارنة.";
+    }
+    function clearMap() {
+      walls=new Set(defaultWalls.map(([r,c])=>key(r,c)));
+      renderAll(); resetStats();
+      document.getElementById("status").textContent="عادت الخريطة الافتراضية.";
+    }
+    function renderAll() { for(const a of algos) drawGrid(a.id); }
+    document.getElementById("runBtn").addEventListener("click",runComparison);
+    document.getElementById("randomBtn").addEventListener("click",randomMap);
+    document.getElementById("clearBtn").addEventListener("click",clearMap);
+    renderAll();
+  </script>
+</body>
+</html>
